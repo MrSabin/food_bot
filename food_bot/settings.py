@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-*act0i+1&=rwwnj=&_0fpx5g)@48f+fy(dn5t!n(7%gyg=uaur
 DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1", "pyprojects.ru",
-                 "ovz1.j80844486.pl50n.vps.myjino.ru"]
+    "ovz1.j80844486.pl50n.vps.myjino.ru", "https://pyprojects.ru"]
 
 
 # Application definition
