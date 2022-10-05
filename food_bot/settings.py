@@ -27,7 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1", "pyprojects.ru"]
 
-CSRF_TRUSTED_ORIGINS = ['https://pyprojects.ru/']
+CSRF_TRUSTED_ORIGINS = ['https://pyprojects.ru']
 
 
 # Application definition
