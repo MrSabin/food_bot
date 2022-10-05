@@ -34,7 +34,6 @@ DIETS = (
     'SEAFOOD',
     'GLUTEN_FREE',
 )
-# = [f'diet_{i}' for i in range(4)]
 
 
 def start(update: Update, context: CallbackContext) -> int:
@@ -162,7 +161,7 @@ def show_new_recipe(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    message_text = f'option selected: {query.data} \n CONTENT: RECIPE WITH PHOTO \n CONVERSATION STAGE: AWAIT_DIET'
+    message_text = f'option selected: {query.data} \n CONTENT: RECIPE WITH PHOTO \n CONVERSATION STAGE: SHOW_NEW_RECIPE'
     query.edit_message_text(message_text)
 
 
