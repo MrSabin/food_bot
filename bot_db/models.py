@@ -39,5 +39,14 @@ class Meal(models.Model):
 class User(models.Model):
     user_id = models.IntegerField(verbose_name="Telegram ID")
     full_name = models.CharField(max_length=50, verbose_name="Полное имя")
-    phonenumber = models.CharField(
+    phone_number = models.CharField(
         max_length=30, verbose_name="Номер телефона")
+
+    def __str__(self):
+        return self.full_name
+    
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=False)
+    sent_free = models.IntegerField(verbose_name="Бесплатных отправлено")
