@@ -34,3 +34,10 @@ class Meal(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class User(models.Model):
+    user_id = models.IntegerField(verbose_name="Telegram ID")
+    full_name = models.CharField(max_length=50, verbose_name="Полное имя")
+    phonenumber = models.CharField(
+        max_length=30, verbose_name="Номер телефона")
