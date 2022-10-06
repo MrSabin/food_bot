@@ -16,6 +16,8 @@ from telegram.ext import (
     Updater,
 )
 
+import bot_strings
+
 # Conversation states
 (
     AWAIT_REGISTRATION,
@@ -37,7 +39,7 @@ DIETS = (
 
 
 def start(update: Update, context: CallbackContext) -> int:
-    message_text = 'TEXT: accept_privacy_message'
+    message_text = bot_strings.accept_privacy_message
 
     try:
         # TODO check if user already in DB
