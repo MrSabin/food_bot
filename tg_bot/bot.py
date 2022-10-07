@@ -26,7 +26,8 @@ import bot_strings
     CHOOSE_FROM_MAIN_MENU,
     AWAIT_DIET,
     SHOW_NEW_RECIPE,
-) = range(6)
+    CHOOSE_FROM_ACCOUNT_MENU,
+) = range(7)
 
 # Diet types
 # TODO fetch the values from Django
@@ -39,73 +40,49 @@ DIETS = (
 
 
 def start(update: Update, context: CallbackContext) -> int:
-    message_text = bot_strings.accept_privacy_message
-
     try:
         # TODO check if user already in DB
         return main_menu(update, context)
 
     except ZeroDivisionError:  # TODO except user does not exist:
+        # TODO add view & url to privacy policy
+        message_text = bot_strings.accept_policy_message
         keyboard = [
             [
-                InlineKeyboardButton('TEXT: SHOW PRIVACY POLICY', callback_data='show_policy'),
-            ],
-            [
-                InlineKeyboardButton('TEXT: ACCEPT & REGISTER BUTTON', callback_data='register'),
+                InlineKeyboardButton(bot_strings.register_button, callback_data='register'),
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        update.message.reply_text(message_text, reply_markup=reply_markup)
+        update.effective_chat.send_message(message_text, reply_markup=reply_markup)
         return AWAIT_REGISTRATION
-
-
-def show_privacy_policy(update: Update, context: CallbackContext) -> int:
-    # TODO send privacy policy
-
-    keyboard = [
-        [
-            InlineKeyboardButton('TEXT: ACCEPT & REGISTER BUTTON', callback_data='register'),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('TEXT: accept_privacy_message', reply_markup=reply_markup)
-    return AWAIT_REGISTRATION
 
 
 def request_name(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     query.answer()
-    query.edit_message_text('TEXT: request_name')
-
-    # store this message to delete it in the next step
-    context.chat_data['message_to_delete'] = query.message.message_id
+    query.edit_message_text(bot_strings.request_name)
 
     return AWAIT_NAME
 
 
-def confirm_name(update: Update, context: CallbackContext) -> int:
-    # TODO confirm or go back to reenter name
+def request_confirm_name(update: Update, context: CallbackContext) -> int:
+    """Store user's name and ask user to confirm it."""
+    context.chat_data['name'] = name = update.message.text
 
-    if 'message_to_delete' in context.chat_data:
-        context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=context.chat_data['message_to_delete']
-        )
-        del context.chat_data['message_to_delete']
+    message_text = bot_strings.confirm_name.format(name)
+    keyboard = [
+        [
+            InlineKeyboardButton(bot_strings.yes_button, callback_data='confirm'),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.effective_chat.send_message(message_text, reply_markup=reply_markup)
 
     return AWAIT_CONFIRMATION
 
 
 def complete_registration(update: Update, context: CallbackContext):
-    if update.message:
-        user_name = update.message.text
-
-    if 'message_to_delete' in context.chat_data:
-        context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=context.chat_data['message_to_delete']
-        )
-        del context.chat_data['message_to_delete']
+    name = context.chat_data['name']
 
     # TODO send user to Django
 
@@ -119,14 +96,14 @@ def main_menu(update: Update, context: CallbackContext):
     if query:
         query.answer()
 
-    message_text = 'TEXT: main menu'
+    message_text = bot_strings.main_menu
 
     keyboard = [
         [
-            InlineKeyboardButton('TEXT: GIVE ME A RECIPE', callback_data='new_recipe'),
+            InlineKeyboardButton(bot_strings.new_recipe_button, callback_data='new_recipe'),
         ],
         [
-            InlineKeyboardButton('TEXT: ACCOUNT SETTINGS', callback_data='account'),
+            InlineKeyboardButton(bot_strings.account_menu_button, callback_data='account'),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -140,19 +117,19 @@ def main_menu(update: Update, context: CallbackContext):
 
 
 def request_diet(update: Update, context: CallbackContext):
-    # TODO diet buttons with callback_query data
     query = update.callback_query
     query.answer()
 
-    message_text = 'TEXT: request diet \n CONVERSATION STAGE: AWAIT_DIET'
+    message_text = bot_strings.request_diet
     keyboard = []
 
     for i, diet in enumerate(DIETS):
         keyboard.append([InlineKeyboardButton(diet, callback_data=f'diet_{i}')])
-        print(diet, f'diet_{i}')
+    keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
+    keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.effective_chat.send_message(message_text, reply_markup=reply_markup)
+    query.edit_message_text(message_text, reply_markup=reply_markup)
 
     return AWAIT_DIET
 
@@ -162,6 +139,9 @@ def show_new_recipe(update: Update, context: CallbackContext):
     # TODO no recipes with allergy ingredients
     query = update.callback_query
     query.answer()
+
+    selected_diet = query.data
+    # TODO get a recipe from Django
 
     message_text = f'option selected: {query.data} \n CONTENT: RECIPE WITH PHOTO \n CONVERSATION STAGE: SHOW_NEW_RECIPE'
     query.edit_message_text(message_text)
@@ -180,7 +160,27 @@ def cancel_preference_operation(update: Update, context: CallbackContext):
 
 
 def account_menu(update: Update, context: CallbackContext):
-    pass
+    query = update.callback_query
+    query.answer()
+
+    message_text = bot_strings.account_menu
+    keyboard = [
+        [
+            InlineKeyboardButton(bot_strings.favorite_recipes_button, callback_data='favorite_recipes'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.excluded_recipes_button, callback_data='excluded_recipes'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.allergies_button, callback_data='allergies'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main'),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query.edit_message_text(message_text, reply_markup=reply_markup)
+    return CHOOSE_FROM_ACCOUNT_MENU
 
 
 def favorite_recipes(update: Update, context: CallbackContext):
@@ -271,7 +271,7 @@ class Command(BaseCommand):
             ],
             states={
                 AWAIT_REGISTRATION: [CallbackQueryHandler(request_name, pattern=r'^register$')],
-                AWAIT_NAME: [MessageHandler(Filters.text & ~Filters.command, confirm_name)],
+                AWAIT_NAME: [MessageHandler(Filters.text & ~Filters.command, request_confirm_name)],
                 AWAIT_CONFIRMATION: [
                     CallbackQueryHandler(request_name, pattern=r'^back_to_name$'),
                     CallbackQueryHandler(complete_registration, pattern=r'^confirm$')
@@ -281,18 +281,26 @@ class Command(BaseCommand):
                     CallbackQueryHandler(account_menu, pattern=r'^account$'),
                 ],
                 AWAIT_DIET: [
-                    CallbackQueryHandler(show_new_recipe, pattern=r'^diet_\d+$'),
+                    CallbackQueryHandler(show_new_recipe, pattern=r'^diet_\d+$|^diet_any$'),
+                    CallbackQueryHandler(main_menu, pattern=r'^back_to_main$'),
                 ],
                 SHOW_NEW_RECIPE: [
                     CallbackQueryHandler(add_recipe_to_favorites, pattern=r'^...$'),
                     CallbackQueryHandler(exclude_recipe, pattern=r'^...$')
                 ],
+                CHOOSE_FROM_ACCOUNT_MENU: [
+                    CallbackQueryHandler(favorite_recipes, pattern=r'^favorite_recipes$'),
+                    CallbackQueryHandler(excluded_recipes, pattern=r'^excluded_recipes$'),
+                    CallbackQueryHandler(allergies, pattern=r'^allergies$'),
+                    CallbackQueryHandler(main_menu, pattern=r'^back_to_main$'),
+                ]
 
                 # ...: ...,
             },
             fallbacks=[
                 CallbackQueryHandler(back_to_main, pattern=r'^back_to_main$'),
                 CommandHandler('back_to_main', back_to_main),
+                CommandHandler('start', main_menu),
                 MessageHandler(Filters.text, help_message),
                 ]
         )
