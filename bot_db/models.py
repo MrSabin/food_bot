@@ -31,6 +31,9 @@ class Recipe(models.Model):
         Diet, on_delete=models.CASCADE, verbose_name="Тип диеты")
     ingredients = models.ManyToManyField(
         Ingredient, verbose_name="Ингредиенты")
+    image = models.ImageField(
+        upload_to="recipes", null=True, blank=True, verbose_name="Изображение"
+    )
 
     def __str__(self):
         return self.title
