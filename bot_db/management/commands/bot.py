@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-
+from bot_db.models import Diet
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management.base import BaseCommand
 from environs import Env
@@ -31,12 +31,6 @@ import bot_strings
 
 # Diet types
 # TODO fetch the values from Django
-DIETS = (
-    'VEGAN',
-    'VEGETARIAN',
-    'SEAFOOD',
-    'GLUTEN_FREE',
-)
 
 
 def start(update: Update, context: CallbackContext) -> int:
@@ -120,9 +114,9 @@ def request_diet(update: Update, context: CallbackContext):
 
     message_text = bot_strings.request_diet
     keyboard = []
-
-    for i, diet in enumerate(DIETS):
-        keyboard.append([InlineKeyboardButton(diet, callback_data=f'diet_{i}')])
+    diets = Diet.objects.all()
+    for i, diet in enumerate(diets):
+        keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{i}')])
     keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
     keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
 
