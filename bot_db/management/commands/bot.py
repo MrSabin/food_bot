@@ -1,10 +1,11 @@
 import logging
 from pathlib import Path
-
+from bot_db.models import Diet, Recipe
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management.base import BaseCommand
 from environs import Env
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMediaPhoto
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMediaPhoto, LabeledPrice
+from telegram import PreCheckoutQuery
 from telegram import error as telegram_error
 from telegram.ext import (
     CallbackContext,
@@ -14,9 +15,15 @@ from telegram.ext import (
     Filters,
     MessageHandler,
     Updater,
+    PreCheckoutQueryHandler,
+    ContextTypes,
 )
 
 import bot_strings
+
+env = Env()
+env.read_env()
+payments_token = env('PAYMENTS_TOKEN')
 
 # Conversation states
 (
@@ -31,12 +38,6 @@ import bot_strings
 
 # Diet types
 # TODO fetch the values from Django
-DIETS = (
-    'VEGAN',
-    'VEGETARIAN',
-    'SEAFOOD',
-    'GLUTEN_FREE',
-)
 
 
 def start(update: Update, context: CallbackContext) -> int:
@@ -120,9 +121,9 @@ def request_diet(update: Update, context: CallbackContext):
 
     message_text = bot_strings.request_diet
     keyboard = []
-
-    for i, diet in enumerate(DIETS):
-        keyboard.append([InlineKeyboardButton(diet, callback_data=f'diet_{i}')])
+    diets = Diet.objects.all()
+    for i, diet in enumerate(diets):
+        keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{i}')])
     keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
     keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
 
@@ -140,7 +141,7 @@ def show_new_recipe(update: Update, context: CallbackContext):
     query.answer()
 
     selected_diet = query.data
-
+    #recipes = Recipe.objects.filter(diet__title=selected_diet)
     # TODO get a recipe from Django
     recipe_id = 123
     recipe_title = 'Replace'
@@ -176,10 +177,29 @@ def show_new_recipe(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_photo(recipe_photo, caption=message_text, reply_markup=reply_markup)
+    
+    
+    price = LabeledPrice(label='Подписка на 1 месяц', amount=50000)
+    message_text = 'Тестовый платеж!'
+    update.effective_chat.send_message(message_text)
+    update.effective_chat.send_invoice(
+        title='Подписка на бота',
+        description='активация подписки на бота на 1 месяц',
+        provider_token=payments_token,
+        currency='rub',
+        is_flexible=False,
+        prices=[price],
+        payload='test-invoice-payload'
+         )
+    
     if query:
-        query.message.delete()
+        query.message.delete()    
 
-
+def precheckout_callback(update: Update, context: CallbackContext):    
+    query = update.pre_checkout_query
+    query.answer(ok=True)
+    
+    
 def add_recipe_to_favorites(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
@@ -358,9 +378,8 @@ class Command(BaseCommand):
         dispatcher.add_handler(CallbackQueryHandler(add_recipe_to_favorites, pattern=r'^add_to_favorites_\d+$'))
         dispatcher.add_handler(CallbackQueryHandler(exclude_recipe, pattern=r'^exclude_recipe_\d+$'))
         dispatcher.add_handler(CallbackQueryHandler(cancel_preference_operation, pattern=r'^cancel_.+$'))
-
         dispatcher.add_handler(CallbackQueryHandler(main_menu, pattern=r'^back_to_main$'))
-
+        dispatcher.add_handler(PreCheckoutQueryHandler(precheckout_callback))
         dispatcher.add_handler(conversation_handler)
 
         updater.start_polling()
