@@ -34,6 +34,7 @@ class Recipe(models.Model):
     image = models.ImageField(
         upload_to="recipes", null=True, blank=True, verbose_name="Изображение"
     )
+    description = models.TextField(verbose_name="Описание")
 
     def __str__(self):
         return self.title
