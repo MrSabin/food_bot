@@ -16,7 +16,6 @@ from telegram.ext import (
     MessageHandler,
     Updater,
     PreCheckoutQueryHandler,
-    ContextTypes,
 )
 
 import bot_strings
@@ -30,17 +29,10 @@ payments_token = env('PAYMENTS_TOKEN')
     AWAIT_REGISTRATION,
     AWAIT_NAME,
     AWAIT_CONFIRMATION,
-    CHOOSE_FROM_MAIN_MENU,
-    AWAIT_DIET,
-    SHOW_NEW_RECIPE,
-    CHOOSE_FROM_ACCOUNT_MENU,
-) = range(7)
-
-# Diet types
-# TODO fetch the values from Django
+) = range(3)
 
 
-def start(update: Update, context: CallbackContext) -> int:
+def start(update: Update, context: CallbackContext) -> int or None:
     try:
         # TODO check if user already in DB
         return main_menu(update, context)
@@ -141,7 +133,7 @@ def show_new_recipe(update: Update, context: CallbackContext):
     query.answer()
 
     selected_diet = query.data
-    #recipes = Recipe.objects.filter(diet__title=selected_diet)
+    # recipes = Recipe.objects.filter(diet__title=selected_diet)
     # TODO get a recipe from Django
     recipe_id = 123
     recipe_title = 'Replace'
@@ -194,6 +186,7 @@ def show_new_recipe(update: Update, context: CallbackContext):
     
     if query:
         query.message.delete()    
+
 
 def precheckout_callback(update: Update, context: CallbackContext):    
     query = update.pre_checkout_query
