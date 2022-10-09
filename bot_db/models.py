@@ -48,8 +48,8 @@ class User(models.Model):
         max_length=30, verbose_name="Номер телефона",
         blank=True, default='',
     )
-    favorite_recipes = models.ManyToManyField(Recipe, related_name="favorites")
-    excluded_recipes = models.ManyToManyField(Recipe, related_name="excluded")
+    favorite_recipes = models.ManyToManyField(Recipe, related_name="favorited_by")
+    excluded_recipes = models.ManyToManyField(Recipe, related_name="excluded_by")
 
     def __str__(self):
         return self.full_name
