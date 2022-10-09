@@ -169,20 +169,22 @@ def show_new_recipe(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_photo(recipe_photo, caption=message_text, reply_markup=reply_markup)
-    
-    
-    price = LabeledPrice(label='Подписка на 1 месяц', amount=50000)
-    message_text = 'Тестовый платеж!'
-    update.effective_chat.send_message(message_text)
-    update.effective_chat.send_invoice(
-        title='Подписка на бота',
-        description='активация подписки на бота на 1 месяц',
-        provider_token=payments_token,
-        currency='rub',
-        is_flexible=False,
-        prices=[price],
-        payload='test-invoice-payload'
-         )
+
+    # TODO move into its own branch
+    # commented out for now so as to not pollute this branch
+    def test_payment(update, context):
+        price = LabeledPrice(label='Подписка на 1 месяц', amount=50000)
+        message_text = 'Тестовый платеж!'
+        update.effective_chat.send_message(message_text)
+        update.effective_chat.send_invoice(
+            title='Подписка на бота',
+            description='активация подписки на бота на 1 месяц',
+            provider_token=payments_token,
+            currency='rub',
+            is_flexible=False,
+            prices=[price],
+            payload='test-invoice-payload'
+             )
     
     if query:
         query.message.delete()    
@@ -261,9 +263,7 @@ def account_menu(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton(bot_strings.excluded_recipes_button, callback_data='excluded_recipes'),
         ],
-        [
-            InlineKeyboardButton(bot_strings.allergies_button, callback_data='allergies'),
-        ],
+        # TODO allergy button
         [
             InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main'),
         ],
@@ -276,6 +276,7 @@ def favorite_recipes(update: Update, context: CallbackContext):
     """Fetch saved recipes from DB and show them to user as buttons.
     Break up into pages, 5 per page.
     """
+
     pass
 
 
