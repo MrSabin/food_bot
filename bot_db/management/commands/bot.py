@@ -127,8 +127,8 @@ def request_diet(update: Update, context: CallbackContext):
     message_text = bot_strings.request_diet
     keyboard = []
     diets = Diet.objects.all()
-    for i, diet in enumerate(diets):
-        keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{i}')])
+    for diet in diets:
+        keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{diet.id}')])
     keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
     keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
 
