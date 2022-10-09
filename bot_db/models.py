@@ -8,7 +8,7 @@ class Diet(models.Model):
         return self.title
 
 
-class Product_group(models.Model):
+class ProductGroup(models.Model):
     title = models.CharField(max_length=255, verbose_name="Группа продуктов")
 
     def __str__(self):
@@ -18,19 +18,41 @@ class Product_group(models.Model):
 class Ingredient(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название продукта")
     group = models.ForeignKey(
-        Product_group, on_delete=models.CASCADE, verbose_name="Продуктовая группа"
+        ProductGroup, on_delete=models.CASCADE, verbose_name="Продуктовая группа"
     )
 
     def __str__(self):
         return self.title
 
 
-class Meal(models.Model):
+class Recipe(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название блюда")
     diet = models.ForeignKey(
         Diet, on_delete=models.CASCADE, verbose_name="Тип диеты")
     ingredients = models.ManyToManyField(
         Ingredient, verbose_name="Ингредиенты")
+    image = models.ImageField(
+        upload_to="recipes", null=True, blank=True, verbose_name="Изображение"
+    )
+    description = models.TextField(verbose_name="Описание")
 
     def __str__(self):
         return self.title
+
+
+class User(models.Model):
+    user_id = models.IntegerField(verbose_name="Telegram ID")
+    full_name = models.CharField(max_length=50, verbose_name="Полное имя")
+    phone_number = models.CharField(
+        max_length=30, verbose_name="Номер телефона")
+    favorite_recipes = models.ManyToManyField(Recipe, related_name="favorites")
+    excluded_recipes = models.ManyToManyField(Recipe, related_name="excluded")
+
+    def __str__(self):
+        return self.full_name
+
+
+class Subscription(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=False)
+    sent_free = models.IntegerField(verbose_name="Бесплатных отправлено")
