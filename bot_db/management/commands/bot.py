@@ -156,7 +156,7 @@ def show_new_recipe(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    selected_diet_id = query.data.removeprefix('diet_')
+    selected_diet_id = query.data.replace('diet_', '')
     if selected_diet_id != 'any':
         recipes = Recipe.objects.filter(diet=selected_diet_id)\
             .exclude(excluded_by__user_id=update.effective_user.id)
@@ -189,9 +189,6 @@ def show_new_recipe(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # if recipe.image is not None:
-    #     recipe_image = recipe.image
-    # else:
     recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
     update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
     
@@ -224,7 +221,7 @@ def add_recipe_to_favorites(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    recipe_id = query.data.removeprefix('add_to_favorites_')
+    recipe_id = query.data.replace('add_to_favorites_', '')
 
     recipe = Recipe.objects.get(id=recipe_id)
     customer = Customer.objects.get(user_id=update.effective_user.id)
@@ -244,7 +241,7 @@ def exclude_recipe(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    recipe_id = query.data.removeprefix('exclude_recipe_')
+    recipe_id = query.data.replace('exclude_recipe_', '')
 
     recipe = Recipe.objects.get(id=recipe_id)
     customer = Customer.objects.get(user_id=update.effective_user.id)
@@ -315,7 +312,7 @@ def show_favorite_recipes_list(update: Update, context: CallbackContext):
 def show_favorite_recipe(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-    recipe_id = query.data.removeprefix('show_favorite_')
+    recipe_id = query.data.replace('show_favorite_', '')
     try:
         recipe = Recipe.objects.get(id=recipe_id)
     except django.db.Error:
@@ -375,7 +372,7 @@ def show_excluded_recipes_list(update: Update, context: CallbackContext):
 def show_excluded_recipe(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-    recipe_id = query.data.removeprefix('show_excluded_')
+    recipe_id = query.data.replace('show_excluded_', '')
     try:
         recipe = Recipe.objects.get(id=recipe_id)
     except django.db.Error:
@@ -408,7 +405,7 @@ def remove_recipe_from_favorites(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    recipe_id = query.data.removeprefix('cancel_favorite_')
+    recipe_id = query.data.replace('cancel_favorite_', '')
 
     recipe = Recipe.objects.get(id=recipe_id)
     customer = Customer.objects.get(user_id=update.effective_user.id)
@@ -438,7 +435,7 @@ def remove_recipe_from_excluded(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    recipe_id = query.data.removeprefix('cancel_exclude_')
+    recipe_id = query.data.replace('cancel_exclude_', '')
 
     recipe = Recipe.objects.get(id=recipe_id)
     customer = Customer.objects.get(user_id=update.effective_user.id)
