@@ -1,8 +1,9 @@
 import requests
+from django.core.management.base import BaseCommand
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import json
-from bot_db.models import Recipe
+from bot_db.models import Diet, Recipe
 
 
 def get_recipes_links(url, pages):
@@ -58,9 +59,11 @@ def get_recipe_details(urls_list, diet):
         recipe["ingredients"] = ingredients
         recipes.append(recipe)
 
+        diet_entry = Diet.objects.get_or_create(title=diet)
+
         recipe = Recipe(
             title=title,
-            diet=diet,
+            diet=Diet.objects.get(title=diet),
             ingredients=ingredients,
             image=image_url,
             description=description,
@@ -71,21 +74,23 @@ def get_recipe_details(urls_list, diet):
         json.dump(recipes, file, ensure_ascii=False, indent=4)
 
 
-def main():
-    pages = 3
-    vegetarian_url = "https://www.iamcook.ru/event/everyday/everyday-vegetarian"
-    non_gluten_url = "https://www.iamcook.ru/event/baking/gluten-free-baking"
-    abstinence_url = "https://www.iamcook.ru/event/abstinence"
-    everyday_url = "https://www.iamcook.ru/event/everyday"
-    get_recipe_details(get_recipes_links(
-        vegetarian_url, pages), diet="Вегетарианская")
-    get_recipe_details(get_recipes_links(
-        non_gluten_url, pages), diet="Безглютеновая")
-    get_recipe_details(get_recipes_links(
-        abstinence_url, pages), diet="Постная")
-    get_recipe_details(get_recipes_links(
-        everyday_url, pages), diet="На каждый день")
+class Command(BaseCommand):
+
+    def handle(self, *args, **options):
+        pages = 3
+        vegetarian_url = "https://www.iamcook.ru/event/everyday/everyday-vegetarian"
+        non_gluten_url = "https://www.iamcook.ru/event/baking/gluten-free-baking"
+        abstinence_url = "https://www.iamcook.ru/event/abstinence"
+        everyday_url = "https://www.iamcook.ru/event/everyday"
+        get_recipe_details(get_recipes_links(
+            vegetarian_url, pages), diet="Вегетарианская")
+        get_recipe_details(get_recipes_links(
+            non_gluten_url, pages), diet="Безглютеновая")
+        get_recipe_details(get_recipes_links(
+            abstinence_url, pages), diet="Постная")
+        get_recipe_details(get_recipes_links(
+            everyday_url, pages), diet="На каждый день")
 
 
 if __name__ == "__main__":
-    main()
+    Command().handle()
