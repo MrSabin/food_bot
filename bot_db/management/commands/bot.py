@@ -185,7 +185,6 @@ def show_new_recipe(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_photo(recipe_photo, caption=message_text, reply_markup=reply_markup)
-    update.effective_chat.send_message("Оплатите подписку введя команду '/buy'")
     
     if query:
         query.message.delete()    
