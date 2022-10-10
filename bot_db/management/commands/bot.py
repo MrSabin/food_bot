@@ -3,7 +3,7 @@ import random
 
 import django.db
 
-from bot_db.models import Diet, Recipe, Customer
+from bot_db.models import Diet, Recipe, Customer, Subscription
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management.base import BaseCommand
 from environs import Env
@@ -35,7 +35,6 @@ payments_token = env('PAYMENTS_TOKEN')
 ) = range(3)
 
 
-# TODO
 def format_recipe_message(recipe: Recipe):
     return bot_strings.recipe.format(title=recipe.title,
                                      description=recipe.description,
@@ -93,7 +92,9 @@ def complete_registration(update: Update, context: CallbackContext):
     name = context.chat_data['name']
 
     try:
-        Customer.objects.create(user_id=update.effective_user.id, full_name=name)
+        customer = Customer.objects.create(user_id=update.effective_user.id, full_name=name)
+        customer.add_free_subscription()
+
         message_text = bot_strings.registration_successful
     except django.db.Error:
         message_text = bot_strings.db_error_message
@@ -156,6 +157,12 @@ def show_new_recipe(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    if customer.subscription.sent_free > 2:
+        update.effective_chat.send_message(bot_strings.subscription_required)
+        return main_menu(update, context)
+
+
     selected_diet_id = query.data.replace('diet_', '')
     if selected_diet_id != 'any':
         recipes = Recipe.objects.filter(diet=selected_diet_id)\
@@ -191,6 +198,9 @@ def show_new_recipe(update: Update, context: CallbackContext):
 
     recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
     update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
+
+    customer.add_sent_recipe()
+    print(customer.subscription.sent_free)
     
     if query:
         query.message.delete()    

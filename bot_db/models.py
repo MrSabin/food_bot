@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import F
 
 
 class Diet(models.Model):
@@ -6,6 +7,7 @@ class Diet(models.Model):
 
     def __str__(self):
         return self.title
+
 
 class Recipe(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название блюда")
@@ -36,6 +38,19 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.full_name
+
+    def add_sent_recipe(self):
+        if not self.subscription.is_active:
+            self.subscription.sent_free = F('sent_free') + 1
+            self.subscription.save()
+
+    def add_free_subscription(self):
+        self.subscription = Subscription(user=self, sent_free=0)
+        self.subscription.save()
+
+    def add_paid_subscription(self):
+        self.subscription.is_active = True
+        self.subscription.save()
 
 
 class Subscription(models.Model):

@@ -17,6 +17,8 @@ add_to_favorites_button = 'Добавить в избранные'
 exclude_recipe_button = 'Больше не показывать'
 another_recipe_same_diet = 'Другой рецепт из этой же диеты'
 another_recipe_diff_diet = 'Рецепт из другой диеты'
+subscription_required = ('Ваш пробный период закончился. '
+                         'Пожалуйста, оформите подписку.')
 favorite_recipes_button = 'Избранные рецепты'
 excluded_recipes_button = 'Скрытые рецепты'
 remove_from_favorites_button = 'Удалить из избранного'
