@@ -1,14 +1,13 @@
 import logging
 import random
-from pathlib import Path
 
 import django.db
 
-from bot_db.models import Diet, Recipe, User
+from bot_db.models import Diet, Recipe, Customer
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management.base import BaseCommand
 from environs import Env
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMediaPhoto, LabeledPrice
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, LabeledPrice
 from telegram import PreCheckoutQuery
 from telegram import error as telegram_error
 from telegram.ext import (
@@ -46,10 +45,10 @@ def format_recipe_message(recipe: Recipe):
 
 def start(update: Update, context: CallbackContext) -> int or None:
     try:
-        User.objects.get(user_id=update.effective_user.id)
+        Customer.objects.get(user_id=update.effective_user.id)
         return main_menu(update, context)
 
-    except User.DoesNotExist:
+    except Customer.DoesNotExist:
         # TODO add view & url to privacy policy
         message_text = bot_strings.accept_policy_message
         keyboard = [
@@ -94,7 +93,7 @@ def complete_registration(update: Update, context: CallbackContext):
     name = context.chat_data['name']
 
     try:
-        User.objects.create(user_id=update.effective_user.id, full_name=name)
+        Customer.objects.create(user_id=update.effective_user.id, full_name=name)
         message_text = bot_strings.registration_successful
     except django.db.Error:
         message_text = bot_strings.db_error_message
@@ -228,8 +227,8 @@ def add_recipe_to_favorites(update: Update, context: CallbackContext):
     recipe_id = query.data.removeprefix('add_to_favorites_')
 
     recipe = Recipe.objects.get(id=recipe_id)
-    user = User.objects.get(user_id=update.effective_user.id)
-    user.favorite_recipes.add(recipe)
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.favorite_recipes.add(recipe)
 
     message_text = bot_strings.recipe_added_to_favorites
 
@@ -248,8 +247,8 @@ def exclude_recipe(update: Update, context: CallbackContext):
     recipe_id = query.data.removeprefix('exclude_recipe_')
 
     recipe = Recipe.objects.get(id=recipe_id)
-    user = User.objects.get(user_id=update.effective_user.id)
-    user.excluded_recipes.add(recipe)
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.excluded_recipes.add(recipe)
 
     message_text = bot_strings.recipe_excluded
 
@@ -408,8 +407,8 @@ def remove_recipe_from_favorites(update: Update, context: CallbackContext):
     recipe_id = query.data.removeprefix('cancel_favorite_')
 
     recipe = Recipe.objects.get(id=recipe_id)
-    user = User.objects.get(user_id=update.effective_user.id)
-    user.favorite_recipes.remove(recipe)
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.favorite_recipes.remove(recipe)
 
     keyboard = [
         [
@@ -438,8 +437,8 @@ def remove_recipe_from_excluded(update: Update, context: CallbackContext):
     recipe_id = query.data.removeprefix('cancel_exclude_')
 
     recipe = Recipe.objects.get(id=recipe_id)
-    user = User.objects.get(user_id=update.effective_user.id)
-    user.excluded_recipes.remove(recipe)
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.excluded_recipes.remove(recipe)
 
     keyboard = [
         [
