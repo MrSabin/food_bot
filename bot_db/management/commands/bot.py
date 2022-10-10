@@ -206,9 +206,6 @@ def test_payment(update, context):
         payload='test-invoice-payload'
          )
     
-    #if query:
-        #query.message.delete()    
-
 
 def precheckout_callback(update: Update, context: CallbackContext):    
     query = update.pre_checkout_query
