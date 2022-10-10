@@ -1,13 +1,13 @@
 import logging
-from pathlib import Path
+import random
 
 import django.db
 
-from bot_db.models import Recipe, User
+from bot_db.models import Diet, Recipe, Customer
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management.base import BaseCommand
 from environs import Env
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMediaPhoto, LabeledPrice
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, LabeledPrice
 from telegram import PreCheckoutQuery
 from telegram import error as telegram_error
 from telegram.ext import (
@@ -37,15 +37,18 @@ payments_token = env('PAYMENTS_TOKEN')
 
 # TODO
 def format_recipe_message(recipe: Recipe):
-    pass
+    return bot_strings.recipe.format(title=recipe.title,
+                                     description=recipe.description,
+                                     ingredients=recipe.ingredients,
+                                     )
 
 
 def start(update: Update, context: CallbackContext) -> int or None:
     try:
-        User.objects.get(user_id=update.effective_user.id)
+        Customer.objects.get(user_id=update.effective_user.id)
         return main_menu(update, context)
 
-    except User.DoesNotExist:
+    except Customer.DoesNotExist:
         # TODO add view & url to privacy policy
         message_text = bot_strings.accept_policy_message
         keyboard = [
@@ -60,8 +63,11 @@ def start(update: Update, context: CallbackContext) -> int or None:
 
 def request_name(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
-    query.answer()
-    query.edit_message_text(bot_strings.request_name)
+    if query:
+        query.answer()
+        query.edit_message_text(bot_strings.request_name)
+    else:
+        update.effective_chat.send_message(bot_strings.request_name)
 
     return AWAIT_NAME
 
@@ -74,6 +80,7 @@ def request_confirm_name(update: Update, context: CallbackContext) -> int:
     keyboard = [
         [
             InlineKeyboardButton(bot_strings.yes_button, callback_data='confirm'),
+            InlineKeyboardButton(bot_strings.no_button, callback_data='back_to_name'),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -86,7 +93,7 @@ def complete_registration(update: Update, context: CallbackContext):
     name = context.chat_data['name']
 
     try:
-        User.objects.create(user_id=update.effective_user.id, full_name=name)
+        Customer.objects.create(user_id=update.effective_user.id, full_name=name)
         message_text = bot_strings.registration_successful
     except django.db.Error:
         message_text = bot_strings.db_error_message
@@ -111,9 +118,11 @@ def main_menu(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton(bot_strings.account_menu_button, callback_data='account'),
         ],
-        [
-            InlineKeyboardButton(bot_strings.subscribe, callback_data='subscribe'),
-        ],        
+
+        # [
+        #     InlineKeyboardButton(bot_strings.subscribe, callback_data='subscribe'),
+        # ],
+
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -129,9 +138,9 @@ def request_diet(update: Update, context: CallbackContext):
 
     message_text = bot_strings.request_diet
     keyboard = []
-    recipes = Recipe.objects.all()
-    for i, recipe.diet in enumerate(recipes):
-        keyboard.append([InlineKeyboardButton(recipe.diet, callback_data=f'diet_{i}')])
+    diets = Diet.objects.all()
+    for diet in diets:
+        keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{diet.id}')])
     keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
     keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
 
@@ -142,37 +151,33 @@ def request_diet(update: Update, context: CallbackContext):
 
 
 def show_new_recipe(update: Update, context: CallbackContext):
-    # TODO check excluded recipes
     # TODO no recipes with allergy ingredients
 
     query = update.callback_query
     query.answer()
 
-    selected_diet = query.data
-    # recipes = Recipe.objects.filter(diet__title=selected_diet)
-    # TODO get a recipe from Django
-    recipe_id = 123
-    recipe_title = 'Replace'
-    recipe_description = 'Me'
-    recipe_ingredients = ('With: data\n'
-                          'from: Django')
-    recipe_photo = 'https://ic.pics.livejournal.com/maxim_nm/51556845/6518023/6518023_original.jpg'
+    selected_diet_id = query.data.removeprefix('diet_')
+    if selected_diet_id != 'any':
+        recipes = Recipe.objects.filter(diet=selected_diet_id)\
+            .exclude(excluded_by__user_id=update.effective_user.id)
 
-    message_text = bot_strings.recipe.format(title=recipe_title,
-                                             description=recipe_description,
-                                             )
+    else:
+        recipes = Recipe.objects.exclude(excluded_by__user_id=update.effective_user.id)
 
+    recipe = random.choice(recipes)
+
+    message_text = format_recipe_message(recipe)
     keyboard = [
         [
             InlineKeyboardButton(bot_strings.add_to_favorites_button,
-                                 callback_data=f'add_to_favorites_{recipe_id}'),
+                                 callback_data=f'add_to_favorites_{recipe.id}'),
         ],
         [
             InlineKeyboardButton(bot_strings.exclude_recipe_button,
-                                 callback_data=f'exclude_recipe_{recipe_id}'),
+                                 callback_data=f'exclude_recipe_{recipe.id}'),
         ],
         [
-            InlineKeyboardButton(bot_strings.another_recipe_same_diet, callback_data=selected_diet),
+            InlineKeyboardButton(bot_strings.another_recipe_same_diet, callback_data=query.data),
         ],
         [
             InlineKeyboardButton(bot_strings.another_recipe_diff_diet, callback_data='new_recipe'),
@@ -184,13 +189,17 @@ def show_new_recipe(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    update.effective_chat.send_photo(recipe_photo, caption=message_text, reply_markup=reply_markup)
+    # if recipe.image is not None:
+    #     recipe_image = recipe.image
+    # else:
+    recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
+    update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
     
     if query:
         query.message.delete()    
 
-    # TODO move into its own branch
-    # commented out for now so as to not pollute this branch
+
+# TODO move into its own branch
 def test_payment(update, context):
     price = LabeledPrice(label='Подписка на 1 месяц', amount=50000)
     message_text = 'Тестовый платеж!'
@@ -215,10 +224,11 @@ def add_recipe_to_favorites(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    recipe_id = int(query.data.removeprefix('add_to_favorites_'))
+    recipe_id = query.data.removeprefix('add_to_favorites_')
 
-    # TODO Django add Recipe to User's favorites
-    print(f'added recipe {recipe_id} to favorites.')
+    recipe = Recipe.objects.get(id=recipe_id)
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.favorite_recipes.add(recipe)
 
     message_text = bot_strings.recipe_added_to_favorites
 
@@ -234,10 +244,11 @@ def exclude_recipe(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    recipe_id = int(query.data.removeprefix('exclude_recipe_'))
+    recipe_id = query.data.removeprefix('exclude_recipe_')
 
-    # TODO Django add Recipe to User's excluded
-    print(f'excluded recipe {recipe_id}.')
+    recipe = Recipe.objects.get(id=recipe_id)
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.excluded_recipes.add(recipe)
 
     message_text = bot_strings.recipe_excluded
 
@@ -247,27 +258,6 @@ def exclude_recipe(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
-
-
-def cancel_preference_operation(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-
-    _, operation_type, recipe_id = query.data.split('_')
-    print(f'cancel: {operation_type = }, {recipe_id = }')
-
-    if operation_type == 'favorite':
-        # TODO remove recipe_id from User.favorite_recipes
-        pass
-
-    else:
-        # TODO remove recipe_id from User.excluded_recipes
-        pass
-
-    message_text = bot_strings.operation_cancelled
-    update.effective_chat.send_message(message_text)
-    if query:
-        query.message.delete()
 
 
 def account_menu(update: Update, context: CallbackContext):
@@ -288,7 +278,9 @@ def account_menu(update: Update, context: CallbackContext):
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(message_text, reply_markup=reply_markup)
+    update.effective_chat.send_message(message_text, reply_markup=reply_markup)
+    if query:
+        query.message.delete()
 
 
 def show_favorite_recipes_list(update: Update, context: CallbackContext):
@@ -330,9 +322,7 @@ def show_favorite_recipe(update: Update, context: CallbackContext):
         update.effective_chat.send_message(bot_strings.db_error_message)
         return main_menu(update, context)
 
-    message_text = bot_strings.recipe.format(title=recipe.title,
-                                             description=recipe.description,
-                                             )
+    message_text = format_recipe_message(recipe)
 
     keyboard = [
         [
@@ -343,15 +333,14 @@ def show_favorite_recipe(update: Update, context: CallbackContext):
             InlineKeyboardButton(bot_strings.back_button,
                                  callback_data=f'back_to_favorites'),
         ],
-
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    update.effective_chat.send_photo(recipe.image, caption=message_text, reply_markup=reply_markup)
+    recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
+    update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
 
-
-def remove_recipe_from_favorites(update: Update, context: CallbackContext):
-    pass
+    if query:
+        query.message.delete()
 
 
 def show_excluded_recipes_list(update: Update, context: CallbackContext):
@@ -393,9 +382,7 @@ def show_excluded_recipe(update: Update, context: CallbackContext):
         update.effective_chat.send_message(bot_strings.db_error_message)
         return main_menu(update, context)
 
-    message_text = bot_strings.recipe.format(title=recipe.title,
-                                             description=recipe.description,
-                                             )
+    message_text = format_recipe_message(recipe)
 
     keyboard = [
         [
@@ -410,11 +397,70 @@ def show_excluded_recipe(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    update.effective_chat.send_photo(recipe.image, caption=message_text, reply_markup=reply_markup)
+    recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
+    update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
+
+    if query:
+        query.message.delete()
+
+
+def remove_recipe_from_favorites(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+
+    recipe_id = query.data.removeprefix('cancel_favorite_')
+
+    recipe = Recipe.objects.get(id=recipe_id)
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.favorite_recipes.remove(recipe)
+
+    keyboard = [
+        [
+            InlineKeyboardButton(bot_strings.back_to_favorites_button,
+                                 callback_data=f'back_to_favorites'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.main_menu_button,
+                                 callback_data=f'main_menu'),
+        ],
+
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    message_text = bot_strings.removed_from_favorites
+    update.effective_user.send_message(message_text, reply_markup=reply_markup)
+
+    if query:
+        query.message.delete()
 
 
 def remove_recipe_from_excluded(update: Update, context: CallbackContext):
-    pass
+    query = update.callback_query
+    query.answer()
+
+    recipe_id = query.data.removeprefix('cancel_exclude_')
+
+    recipe = Recipe.objects.get(id=recipe_id)
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.excluded_recipes.remove(recipe)
+
+    keyboard = [
+        [
+            InlineKeyboardButton(bot_strings.back_to_excluded_button,
+                                 callback_data=f'back_to_excluded'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.main_menu_button,
+                                 callback_data=f'main_menu'),
+        ],
+
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    message_text = bot_strings.removed_from_excluded
+    update.effective_user.send_message(message_text, reply_markup=reply_markup)
+
+    if query:
+        query.message.delete()
 
 
 def allergies(update: Update, context: CallbackContext):
@@ -468,10 +514,12 @@ class Command(BaseCommand):
         conversation_handler = ConversationHandler(
             entry_points=[
                 CommandHandler('start', start),
+                CallbackQueryHandler(request_name, pattern=r'^back_to_name$|^register$')
             ],
             states={
                 AWAIT_REGISTRATION: [CallbackQueryHandler(request_name, pattern=r'^register$')],
-                AWAIT_NAME: [MessageHandler(Filters.text & ~Filters.command, request_confirm_name)],
+                AWAIT_NAME: [CallbackQueryHandler(request_name, pattern=r'^back_to_name$'),
+                             MessageHandler(Filters.text & ~Filters.command, request_confirm_name)],
                 AWAIT_CONFIRMATION: [
                     CallbackQueryHandler(request_name, pattern=r'^back_to_name$'),
                     CallbackQueryHandler(complete_registration, pattern=r'^confirm$')
@@ -488,18 +536,17 @@ class Command(BaseCommand):
         dispatcher.add_handler(CallbackQueryHandler(show_new_recipe, pattern=r'^diet_\d+$|^diet_any$'))
         dispatcher.add_handler(CallbackQueryHandler(add_recipe_to_favorites, pattern=r'^add_to_favorites_\d+$'))
         dispatcher.add_handler(CallbackQueryHandler(exclude_recipe, pattern=r'^exclude_recipe_\d+$'))
-        dispatcher.add_handler(CallbackQueryHandler(cancel_preference_operation, pattern=r'^cancel_.+$'))
+        dispatcher.add_handler(CallbackQueryHandler(remove_recipe_from_favorites, pattern=r'^cancel_favorite_\d+$'))
+        dispatcher.add_handler(CallbackQueryHandler(remove_recipe_from_excluded, pattern=r'^cancel_exclude_\d+$'))
         dispatcher.add_handler(CallbackQueryHandler(show_favorite_recipes_list, pattern=r'^favorite_recipes$'))
         dispatcher.add_handler(CallbackQueryHandler(show_excluded_recipes_list, pattern=r'^excluded_recipes$'))
         dispatcher.add_handler(CallbackQueryHandler(show_favorite_recipe, pattern=r'^show_favorite_\d+$'))
         dispatcher.add_handler(CallbackQueryHandler(show_excluded_recipe, pattern=r'^show_excluded_\d+$'))
 
-        dispatcher.add_handler(CallbackQueryHandler(main_menu, pattern=r'^back_to_main$'))
+        dispatcher.add_handler(CallbackQueryHandler(main_menu, pattern=r'^main_menu$|^back_to_main$'))
         dispatcher.add_handler(CallbackQueryHandler(account_menu, pattern=r'^back_to_account$'))
         dispatcher.add_handler(CallbackQueryHandler(show_favorite_recipes_list, pattern=r'^back_to_favorites'))
         dispatcher.add_handler(CallbackQueryHandler(show_excluded_recipes_list, pattern=r'^back_to_excluded'))
-
-
 
         dispatcher.add_handler(PreCheckoutQueryHandler(precheckout_callback))
         dispatcher.add_handler(CallbackQueryHandler(test_payment, pattern=r'^subscribe$'))
