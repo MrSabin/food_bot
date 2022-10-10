@@ -1,9 +1,17 @@
 from django.db import models
 
 
+class Diet(models.Model):
+    title = models.CharField(max_length=255, verbose_name="Тип диеты")
+
+    def __str__(self):
+        return self.title
+
+
 class Recipe(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название блюда")
-    diet = models.CharField(max_length=50, verbose_name="Тип диеты")
+    diet = models.ForeignKey(Diet, on_delete=models.CASCADE, verbose_name="Тип диеты",
+                             related_name='recipes')
     ingredients = models.TextField(verbose_name="Ингредиенты")
     image = models.ImageField(
         upload_to="recipes", null=True, blank=True, verbose_name="Изображение"
