@@ -226,6 +226,7 @@ def test_payment(update, context):
         currency='rub',
         is_flexible=False,
         prices=[price],
+        start_parameter='one-month-subscription',
         payload='test-invoice-payload'
          )
     
