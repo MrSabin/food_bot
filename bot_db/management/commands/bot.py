@@ -3,7 +3,7 @@ import random
 
 import django.db
 
-from bot_db.models import Diet, Recipe, Customer
+from bot_db.models import Diet, Recipe, Customer, Subscription
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management.base import BaseCommand
 from environs import Env
@@ -35,7 +35,6 @@ payments_token = env('PAYMENTS_TOKEN')
 ) = range(3)
 
 
-# TODO
 def format_recipe_message(recipe: Recipe):
     return bot_strings.recipe.format(title=recipe.title,
                                      description=recipe.description,
@@ -93,7 +92,9 @@ def complete_registration(update: Update, context: CallbackContext):
     name = context.chat_data['name']
 
     try:
-        Customer.objects.create(user_id=update.effective_user.id, full_name=name)
+        customer = Customer.objects.create(user_id=update.effective_user.id, full_name=name)
+        customer.add_free_subscription()
+
         message_text = bot_strings.registration_successful
     except django.db.Error:
         message_text = bot_strings.db_error_message
@@ -136,15 +137,29 @@ def request_diet(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    message_text = bot_strings.request_diet
-    keyboard = []
-    diets = Diet.objects.all()
-    for diet in diets:
-        keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{diet.id}')])
-    keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
-    keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    if not customer.subscription.is_active and customer.subscription.sent_free > 2:
+        keyboard = [
+            [
+                InlineKeyboardButton(bot_strings.subscribe_button, callback_data=f'subscribe'),
+            ],
+            [
+                InlineKeyboardButton(bot_strings.main_menu_button, callback_data=f'main_menu'),
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message_text = bot_strings.subscription_required
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    else:
+        message_text = bot_strings.request_diet
+        keyboard = []
+        diets = Diet.objects.all()
+        for diet in diets:
+            keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{diet.id}')])
+        keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
+        keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
     if query:
         query.message.delete()
@@ -167,6 +182,7 @@ def show_new_recipe(update: Update, context: CallbackContext):
     recipe = random.choice(recipes)
 
     message_text = format_recipe_message(recipe)
+
     keyboard = [
         [
             InlineKeyboardButton(bot_strings.add_to_favorites_button,
@@ -188,10 +204,12 @@ def show_new_recipe(update: Update, context: CallbackContext):
 
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
     update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
-    
+
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.add_sent_recipe()
+
     if query:
         query.message.delete()    
 
@@ -208,6 +226,7 @@ def test_payment(update, context):
         currency='rub',
         is_flexible=False,
         prices=[price],
+        start_parameter='one-month-subscription',
         payload='test-invoice-payload'
          )
     
@@ -229,9 +248,17 @@ def add_recipe_to_favorites(update: Update, context: CallbackContext):
 
     message_text = bot_strings.recipe_added_to_favorites
 
-    keyboard = [[
-        InlineKeyboardButton(bot_strings.cancel_button, callback_data=f'cancel_favorite_{recipe_id}'),
-    ]]
+    keyboard = [
+        [
+            InlineKeyboardButton(bot_strings.cancel_button, callback_data=f'cancel_favorite_{recipe_id}'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.another_recipe_button, callback_data='new_recipe'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.main_menu_button, callback_data='back_to_main'),
+        ],
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
@@ -249,9 +276,17 @@ def exclude_recipe(update: Update, context: CallbackContext):
 
     message_text = bot_strings.recipe_excluded
 
-    keyboard = [[
-        InlineKeyboardButton(bot_strings.cancel_button, callback_data=f'cancel_exclude_{recipe_id}'),
-    ]]
+    keyboard = [
+        [
+            InlineKeyboardButton(bot_strings.cancel_button, callback_data=f'cancel_exclude_{recipe_id}'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.another_recipe_button, callback_data='new_recipe'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.main_menu_button, callback_data='back_to_main'),
+        ],
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
