@@ -42,8 +42,8 @@ def get_recipe_details(urls_list, diet):
             )
         except AttributeError:
             description = title
-
-        image_url = soup.find("img", class_="resultphoto").get("src")
+        base_image_url = "http://img.iamcook.ru/"
+        image_url = urljoin(base_image_url, soup.find("img", class_="resultphoto").get("src"))
 
         ingredients = []
         ingredients_soup = soup.find_all("p", itemprop="recipeIngredient")
@@ -55,7 +55,7 @@ def get_recipe_details(urls_list, diet):
         recipe["title"] = title
         recipe["diet"] = diet
         recipe["description"] = description
-        recipe["image_url"] = image_url
+        recipe["image_url"] = image_url[2:]
         recipe["ingredients"] = ingredients
         recipes.append(recipe)
 

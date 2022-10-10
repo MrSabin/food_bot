@@ -11,9 +11,7 @@ class Recipe(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название блюда")
     diet = models.ForeignKey(Diet, on_delete=models.CASCADE, verbose_name="Тип диеты")
     ingredients = models.TextField(verbose_name="Ингредиенты")
-    image = models.ImageField(
-        upload_to="recipes", null=True, blank=True, verbose_name="Изображение"
-    )
+    image = models.CharField(max_length=255, verbose_name="Изображение")
     description = models.TextField(verbose_name="Описание")
 
     def __str__(self):
