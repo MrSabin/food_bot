@@ -1,7 +1,6 @@
 from django.contrib import admin
-from .models import Diet, Meal, Ingredient, Product_group
+from .models import Recipe, User, Subscription
 
-admin.site.register(Diet)
-admin.site.register(Meal)
-admin.site.register(Ingredient)
-admin.site.register(Product_group)
+admin.site.register(Recipe)
+admin.site.register(User)
+admin.site.register(Subscription)
