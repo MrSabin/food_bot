@@ -322,9 +322,7 @@ def show_favorite_recipe(update: Update, context: CallbackContext):
         update.effective_chat.send_message(bot_strings.db_error_message)
         return main_menu(update, context)
 
-    message_text = bot_strings.recipe.format(title=recipe.title,
-                                             description=recipe.description,
-                                             )
+    message_text = format_recipe_message(recipe)
 
     keyboard = [
         [
@@ -338,7 +336,11 @@ def show_favorite_recipe(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    update.effective_chat.send_photo(recipe.image, caption=message_text, reply_markup=reply_markup)
+    recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
+    update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
+
+    if query:
+        query.message.delete()
 
 
 def show_excluded_recipes_list(update: Update, context: CallbackContext):
@@ -380,9 +382,7 @@ def show_excluded_recipe(update: Update, context: CallbackContext):
         update.effective_chat.send_message(bot_strings.db_error_message)
         return main_menu(update, context)
 
-    message_text = bot_strings.recipe.format(title=recipe.title,
-                                             description=recipe.description,
-                                             )
+    message_text = format_recipe_message(recipe)
 
     keyboard = [
         [
@@ -397,7 +397,11 @@ def show_excluded_recipe(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    update.effective_chat.send_photo(recipe.image, caption=message_text, reply_markup=reply_markup)
+    recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
+    update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
+
+    if query:
+        query.message.delete()
 
 
 def remove_recipe_from_favorites(update: Update, context: CallbackContext):
@@ -539,7 +543,7 @@ class Command(BaseCommand):
         dispatcher.add_handler(CallbackQueryHandler(show_favorite_recipe, pattern=r'^show_favorite_\d+$'))
         dispatcher.add_handler(CallbackQueryHandler(show_excluded_recipe, pattern=r'^show_excluded_\d+$'))
 
-        dispatcher.add_handler(CallbackQueryHandler(main_menu, pattern=r'^main_menu$'))
+        dispatcher.add_handler(CallbackQueryHandler(main_menu, pattern=r'^main_menu$|^back_to_main$'))
         dispatcher.add_handler(CallbackQueryHandler(account_menu, pattern=r'^back_to_account$'))
         dispatcher.add_handler(CallbackQueryHandler(show_favorite_recipes_list, pattern=r'^back_to_favorites'))
         dispatcher.add_handler(CallbackQueryHandler(show_excluded_recipes_list, pattern=r'^back_to_excluded'))
