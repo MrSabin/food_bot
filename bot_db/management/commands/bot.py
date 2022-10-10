@@ -3,7 +3,7 @@ from pathlib import Path
 
 import django.db
 
-from bot_db.models import Diet, Recipe, User
+from bot_db.models import Recipe, User
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management.base import BaseCommand
 from environs import Env
@@ -126,9 +126,9 @@ def request_diet(update: Update, context: CallbackContext):
 
     message_text = bot_strings.request_diet
     keyboard = []
-    diets = Diet.objects.all()
-    for diet in diets:
-        keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{diet.id}')])
+    recipes = Recipe.objects.all()
+    for i, recipe.diet in enumerate(recipes):
+        keyboard.append([InlineKeyboardButton(recipe.diet, callback_data=f'diet_{i}')])
     keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
     keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
 
@@ -182,25 +182,29 @@ def show_new_recipe(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_photo(recipe_photo, caption=message_text, reply_markup=reply_markup)
-
-    # TODO move into its own branch
-    # commented out for now so as to not pollute this branch
-    def test_payment(update, context):
-        price = LabeledPrice(label='Подписка на 1 месяц', amount=50000)
-        message_text = 'Тестовый платеж!'
-        update.effective_chat.send_message(message_text)
-        update.effective_chat.send_invoice(
-            title='Подписка на бота',
-            description='активация подписки на бота на 1 месяц',
-            provider_token=payments_token,
-            currency='rub',
-            is_flexible=False,
-            prices=[price],
-            payload='test-invoice-payload'
-             )
+    update.effective_chat.send_message("Оплатите подписку введя команду '/buy'")
     
     if query:
         query.message.delete()    
+
+    # TODO move into its own branch
+    # commented out for now so as to not pollute this branch
+def test_payment(update, context):
+    price = LabeledPrice(label='Подписка на 1 месяц', amount=50000)
+    message_text = 'Тестовый платеж!'
+    update.effective_chat.send_message(message_text)
+    update.effective_chat.send_invoice(
+        title='Подписка на бота',
+        description='активация подписки на бота на 1 месяц',
+        provider_token=payments_token,
+        currency='rub',
+        is_flexible=False,
+        prices=[price],
+        payload='test-invoice-payload'
+         )
+    
+    #if query:
+        #query.message.delete()    
 
 
 def precheckout_callback(update: Update, context: CallbackContext):    
@@ -499,6 +503,7 @@ class Command(BaseCommand):
 
 
         dispatcher.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+        dispatcher.add_handler(CommandHandler("buy", test_payment))
         dispatcher.add_handler(conversation_handler)
 
         updater.start_polling()
