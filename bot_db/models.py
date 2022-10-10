@@ -20,7 +20,7 @@ class Recipe(models.Model):
         return self.title
 
 
-class User(models.Model):
+class Customer(models.Model):
     user_id = models.IntegerField(verbose_name="Telegram ID")
     full_name = models.CharField(max_length=50, verbose_name="Полное имя")
     phone_number = models.CharField(
@@ -39,6 +39,6 @@ class User(models.Model):
 
 
 class Subscription(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(Customer, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=False)
     sent_free = models.IntegerField(verbose_name="Бесплатных отправлено")
