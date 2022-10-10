@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import json
+from bot_db.models import Recipe
 
 
 def get_recipes_links(url, pages):
@@ -56,6 +57,16 @@ def get_recipe_details(urls_list, diet):
         recipe["image_url"] = image_url
         recipe["ingredients"] = ingredients
         recipes.append(recipe)
+
+        recipe = Recipe(
+            title=title,
+            diet=diet,
+            ingredients=ingredients,
+            image=image_url,
+            description=description,
+        )
+        recipe.save()
+
     with open("recipes.json", "a+") as file:
         json.dump(recipes, file, ensure_ascii=False, indent=4)
 

@@ -1,37 +1,10 @@
 from django.db import models
 
 
-class Diet(models.Model):
-    title = models.CharField(max_length=255, verbose_name="Тип диеты")
-
-    def __str__(self):
-        return self.title
-
-
-class ProductGroup(models.Model):
-    title = models.CharField(max_length=255, verbose_name="Группа продуктов")
-
-    def __str__(self):
-        return self.title
-
-
-class Ingredient(models.Model):
-    title = models.CharField(max_length=255, verbose_name="Название продукта")
-    group = models.ForeignKey(
-        ProductGroup, on_delete=models.CASCADE, verbose_name="Продуктовая группа",
-        blank=True, null=True,
-    )
-
-    def __str__(self):
-        return self.title
-
-
 class Recipe(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название блюда")
-    diet = models.ForeignKey(
-        Diet, on_delete=models.CASCADE, verbose_name="Тип диеты")
-    ingredients = models.ManyToManyField(
-        Ingredient, verbose_name="Ингредиенты")
+    diet = models.CharField(max_length=50, verbose_name="Тип диеты")
+    ingredients = models.TextField(verbose_name="Ингредиенты")
     image = models.ImageField(
         upload_to="recipes", null=True, blank=True, verbose_name="Изображение"
     )
@@ -45,11 +18,15 @@ class User(models.Model):
     user_id = models.IntegerField(verbose_name="Telegram ID")
     full_name = models.CharField(max_length=50, verbose_name="Полное имя")
     phone_number = models.CharField(
-        max_length=30, verbose_name="Номер телефона",
-        blank=True, default='',
+        max_length=30,
+        verbose_name="Номер телефона",
+        blank=True,
+        default="",
     )
-    favorite_recipes = models.ManyToManyField(Recipe, related_name="favorited_by")
-    excluded_recipes = models.ManyToManyField(Recipe, related_name="excluded_by")
+    favorite_recipes = models.ManyToManyField(
+        Recipe, related_name="favorited_by")
+    excluded_recipes = models.ManyToManyField(
+        Recipe, related_name="excluded_by")
 
     def __str__(self):
         return self.full_name
