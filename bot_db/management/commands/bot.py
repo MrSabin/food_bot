@@ -230,6 +230,9 @@ def test_payment(update, context):
         payload='test-invoice-payload'
          )
     
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.add_paid_subscription()
+
 
 def precheckout_callback(update: Update, context: CallbackContext):    
     query = update.pre_checkout_query
