@@ -119,9 +119,11 @@ def main_menu(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton(bot_strings.account_menu_button, callback_data='account'),
         ],
+
         # [
         #     InlineKeyboardButton(bot_strings.subscribe, callback_data='subscribe'),
         # ],
+
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
