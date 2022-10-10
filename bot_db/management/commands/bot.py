@@ -111,6 +111,9 @@ def main_menu(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton(bot_strings.account_menu_button, callback_data='account'),
         ],
+        [
+            InlineKeyboardButton(bot_strings.subscribe, callback_data='subscribe'),
+        ],        
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -503,7 +506,7 @@ class Command(BaseCommand):
 
 
         dispatcher.add_handler(PreCheckoutQueryHandler(precheckout_callback))
-        dispatcher.add_handler(CommandHandler("buy", test_payment))
+        dispatcher.add_handler(CallbackQueryHandler(test_payment, pattern=r'^subscribe$'))
         dispatcher.add_handler(conversation_handler)
 
         updater.start_polling()
