@@ -111,6 +111,9 @@ def main_menu(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton(bot_strings.account_menu_button, callback_data='account'),
         ],
+        [
+            InlineKeyboardButton(bot_strings.subscribe, callback_data='subscribe'),
+        ],        
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -182,7 +185,6 @@ def show_new_recipe(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_photo(recipe_photo, caption=message_text, reply_markup=reply_markup)
-    update.effective_chat.send_message("Оплатите подписку введя команду '/buy'")
     
     if query:
         query.message.delete()    
@@ -203,9 +205,6 @@ def test_payment(update, context):
         payload='test-invoice-payload'
          )
     
-    #if query:
-        #query.message.delete()    
-
 
 def precheckout_callback(update: Update, context: CallbackContext):    
     query = update.pre_checkout_query
@@ -503,7 +502,7 @@ class Command(BaseCommand):
 
 
         dispatcher.add_handler(PreCheckoutQueryHandler(precheckout_callback))
-        dispatcher.add_handler(CommandHandler("buy", test_payment))
+        dispatcher.add_handler(CallbackQueryHandler(test_payment, pattern=r'^subscribe$'))
         dispatcher.add_handler(conversation_handler)
 
         updater.start_polling()
