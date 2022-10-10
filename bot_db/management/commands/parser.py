@@ -51,14 +51,6 @@ def get_recipe_details(urls_list, diet):
         for ingredient_entity in ingredients_soup:
             ingredients.append(ingredient_entity.text)
 
-        recipe = {}
-        recipe["title"] = title
-        recipe["diet"] = diet
-        recipe["description"] = description
-        recipe["image_url"] = image_url[2:]
-        recipe["ingredients"] = ingredients
-        recipes.append(recipe)
-
         diet_entry = Diet.objects.get_or_create(title=diet)
 
         recipe = Recipe(
@@ -69,9 +61,6 @@ def get_recipe_details(urls_list, diet):
             description=description,
         )
         recipe.save()
-
-    with open("recipes.json", "a+") as file:
-        json.dump(recipes, file, ensure_ascii=False, indent=4)
 
 
 class Command(BaseCommand):
