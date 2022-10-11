@@ -56,6 +56,16 @@ class Customer(models.Model):
         self.subscription.renewed_at = timezone.now()
         self.subscription.save()
 
+    def add_favorite_recipe(self, recipe: Recipe):
+        if recipe in self.excluded_recipes.all():
+            self.excluded_recipes.remove(recipe)
+        self.favorite_recipes.add(recipe)
+
+    def exclude_recipe(self, recipe: Recipe):
+        if recipe in self.favorite_recipes.all():
+            self.favorite_recipes.remove(recipe)
+        self.excluded_recipes.add(recipe)
+
 
 class Subscription(models.Model):
     user = models.OneToOneField(Customer, on_delete=models.CASCADE)

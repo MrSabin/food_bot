@@ -239,7 +239,7 @@ def add_recipe_to_favorites(update: Update, context: CallbackContext):
 
     recipe = Recipe.objects.get(id=recipe_id)
     customer = Customer.objects.get(user_id=update.effective_user.id)
-    customer.favorite_recipes.add(recipe)
+    customer.add_favorite_recipe(recipe)
 
     message_text = bot_strings.recipe_added_to_favorites
 
@@ -267,7 +267,7 @@ def exclude_recipe(update: Update, context: CallbackContext):
 
     recipe = Recipe.objects.get(id=recipe_id)
     customer = Customer.objects.get(user_id=update.effective_user.id)
-    customer.excluded_recipes.add(recipe)
+    customer.exclude_recipe(recipe)
 
     message_text = bot_strings.recipe_excluded
 
