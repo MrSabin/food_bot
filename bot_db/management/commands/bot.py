@@ -173,19 +173,32 @@ def show_new_recipe(update: Update, context: CallbackContext):
 
     query = update.callback_query
     query.answer()
-
     selected_diet_id = query.data.replace('diet_', '')
+
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+
+    if not customer.subscription.is_active and customer.subscription.sent_free > 2:
+        keyboard = [
+            [
+                InlineKeyboardButton(bot_strings.subscribe_button, callback_data=f'subscribe'),
+            ],
+            [
+                InlineKeyboardButton(bot_strings.main_menu_button, callback_data=f'main_menu'),
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message_text = bot_strings.subscription_required
+        update.effective_chat.send_message(message_text, reply_markup=reply_markup)
+        query.message.delete()
+        return
+
     if selected_diet_id != 'any':
         recipes = Recipe.objects.filter(diet=selected_diet_id)\
             .exclude(excluded_by__user_id=update.effective_user.id)
-
     else:
         recipes = Recipe.objects.exclude(excluded_by__user_id=update.effective_user.id)
-
     recipe = random.choice(recipes)
-
     message_text = format_recipe_message(recipe)
-
     keyboard = [
         [
             InlineKeyboardButton(bot_strings.add_to_favorites_button,
@@ -195,52 +208,27 @@ def show_new_recipe(update: Update, context: CallbackContext):
             InlineKeyboardButton(bot_strings.exclude_recipe_button,
                                  callback_data=f'exclude_recipe_{recipe.id}'),
         ],
-        [
-            InlineKeyboardButton(bot_strings.another_recipe_same_diet, callback_data=query.data),
-        ],
-        [
-            InlineKeyboardButton(bot_strings.another_recipe_diff_diet, callback_data='new_recipe'),
-        ],
-        [
-            InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main'),
-        ],
-
-    ]
+        ]
+    if customer.subscription.is_active or customer.subscription.sent_free < 3:
+        keyboard.extend([
+            [
+                InlineKeyboardButton(bot_strings.another_recipe_same_diet, callback_data=query.data),
+            ],
+            [
+                InlineKeyboardButton(bot_strings.another_recipe_diff_diet, callback_data='new_recipe'),
+            ],
+            [
+                InlineKeyboardButton(bot_strings.main_menu_button, callback_data='back_to_main'),
+            ],
+        ])
+    else:
+        keyboard.append([InlineKeyboardButton(bot_strings.main_menu_button, callback_data='back_to_main')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
     update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
-
-    customer = Customer.objects.get(user_id=update.effective_user.id)
     customer.add_sent_recipe()
+    query.message.delete()
 
-    if query:
-        query.message.delete()    
-
-
-# TODO move into its own branch
-def test_payment(update, context):
-    price = LabeledPrice(label='Подписка на 1 месяц', amount=50000)
-    message_text = 'Тестовый платеж!'
-    update.effective_chat.send_message(message_text)
-    update.effective_chat.send_invoice(
-        title='Подписка на бота',
-        description='активация подписки на бота на 1 месяц',
-        provider_token=payments_token,
-        currency='rub',
-        is_flexible=False,
-        prices=[price],
-        start_parameter='one-month-subscription',
-        payload='test-invoice-payload'
-         )
-    
-    customer = Customer.objects.get(user_id=update.effective_user.id)
-    customer.add_paid_subscription()
-
-
-def precheckout_callback(update: Update, context: CallbackContext):    
-    query = update.pre_checkout_query
-    query.answer(ok=True)
-    
     
 def add_recipe_to_favorites(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -499,6 +487,32 @@ def remove_recipe_from_excluded(update: Update, context: CallbackContext):
 
     if query:
         query.message.delete()
+
+
+# TODO move into its own branch
+def test_payment(update: Update, context: CallbackContext):
+    price = LabeledPrice(label='Подписка на 1 месяц', amount=500_00)
+    message_text = 'Тестовый платеж!'
+    update.effective_chat.send_message(message_text)
+    update.effective_chat.send_invoice(
+        title='Подписка на бота',
+        description='активация подписки на бота на 1 месяц',
+        provider_token=payments_token,
+        currency='rub',
+        is_flexible=False,
+        prices=[price],
+        start_parameter='one-month-subscription',
+        payload='test-invoice-payload'
+    )
+
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.add_paid_subscription()
+
+
+def precheckout_callback(update: Update, context: CallbackContext):
+    query = update.pre_checkout_query
+    query.answer(ok=True)
+
 
 
 def allergies(update: Update, context: CallbackContext):
