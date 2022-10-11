@@ -44,7 +44,10 @@ def format_recipe_message(recipe: Recipe):
 
 def start(update: Update, context: CallbackContext) -> int or None:
     try:
-        Customer.objects.get(user_id=update.effective_user.id)
+        customer = Customer.objects.get(user_id=update.effective_user.id)
+        if not hasattr(customer, 'subscription'):
+            customer.add_free_subscription()
+
         return main_menu(update, context)
 
     except Customer.DoesNotExist:
