@@ -87,6 +87,8 @@ def request_confirm_name(update: Update, context: CallbackContext) -> int:
 
 
 def complete_registration(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
     name = context.chat_data['name']
 
     try:
@@ -158,8 +160,7 @@ def request_diet(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
-    if query:
-        query.message.delete()
+    query.message.delete()
 
 
 def show_new_recipe(update: Update, context: CallbackContext):
@@ -299,8 +300,7 @@ def account_menu(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
-    if query:
-        query.message.delete()
+    query.message.delete()
 
 
 def show_favorite_recipes_list(update: Update, context: CallbackContext):
@@ -328,8 +328,7 @@ def show_favorite_recipes_list(update: Update, context: CallbackContext):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
-    if query:
-        query.message.delete()
+    query.message.delete()
 
 
 def show_favorite_recipe(update: Update, context: CallbackContext):
@@ -358,9 +357,7 @@ def show_favorite_recipe(update: Update, context: CallbackContext):
 
     recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
     update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
-
-    if query:
-        query.message.delete()
+    query.message.delete()
 
 
 def show_excluded_recipes_list(update: Update, context: CallbackContext):
@@ -388,8 +385,7 @@ def show_excluded_recipes_list(update: Update, context: CallbackContext):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
-    if query:
-        query.message.delete()
+    query.message.delete()
 
 
 def show_excluded_recipe(update: Update, context: CallbackContext):
@@ -419,9 +415,7 @@ def show_excluded_recipe(update: Update, context: CallbackContext):
 
     recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
     update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
-
-    if query:
-        query.message.delete()
+    query.message.delete()
 
 
 def remove_recipe_from_favorites(update: Update, context: CallbackContext):
@@ -449,9 +443,7 @@ def remove_recipe_from_favorites(update: Update, context: CallbackContext):
 
     message_text = bot_strings.removed_from_favorites
     update.effective_user.send_message(message_text, reply_markup=reply_markup)
-
-    if query:
-        query.message.delete()
+    query.message.delete()
 
 
 def remove_recipe_from_excluded(update: Update, context: CallbackContext):
@@ -478,9 +470,7 @@ def remove_recipe_from_excluded(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
     message_text = bot_strings.removed_from_excluded
     update.effective_user.send_message(message_text, reply_markup=reply_markup)
-
-    if query:
-        query.message.delete()
+    query.message.delete()
 
 
 # TODO move into its own branch
