@@ -10,7 +10,7 @@ back_to_excluded_button = 'Назад к скрытым'
 register_button = 'Принять и зарегистрироваться'
 new_recipe_button = 'Дайте рецепт'
 account_menu_button = 'Личный кабинет'
-subscribe_button = 'Оформить подписку'
+subscribe_button = 'Оплатите подписку'
 your_subscription_button = 'Ваша подписка'
 any_diet_button = 'Любая'
 add_to_favorites_button = 'Добавить в избранные'
@@ -32,7 +32,7 @@ accept_policy_message = ('Добро пожаловать. Для регистр
                          'https://containers-qube.cn/storage/uploads/soglashenie-polzovatelya.pdf')
 request_name = 'Пожалуйста, пришлите мне свое имя.'
 confirm_name = 'Я сохраню ваше имя как "{}". Все верно?'
-registration_successful = 'Спасибо за регистрацию и добро пожаловать!'
+registration_successful = 'Добро пожаловать, {}!'
 
 main_menu = ('Главное меню. Получите новый рецепт или зайдите в личный кабинет, '
              'чтобы просмотреть избранные рецепты или исключить ингредиенты из рациона.')
@@ -42,6 +42,9 @@ recipe = ('{title}\n'
           '{ingredients}')
 recipe_added_to_favorites = 'Рецепт добавлен в избранные.'
 recipe_excluded = 'Этот рецепт больше показывать не будем.'
+no_recipes = ('Похоже, вы скрыли все рецепты, которые у нас есть. '
+              'Подождите, пока мы добавим новые, или удалите какие-то '
+              'из скрытых в личном кабинете.')
 operation_cancelled = 'Отменено.'
 
 account_menu = 'Личный кабинет. Просмотрите или удалите избранные и скрытые рецепты.'
@@ -55,10 +58,9 @@ excluded_recipes_none = ('Здесь будут ваши скрытые реце
                          'чтобы сохранить его в эту секцию.')
 removed_from_favorites = 'Рецепт удалён из избранного.'
 removed_from_excluded = 'Этот рецепт снова будет показываться.'
-subscription_required = ('Ваш пробный период закончился. '
-                         'Пожалуйста, оформите подписку.')
-subscription_added = 'Благодарим за платеж, подписка оформлена!'
-subscription_renewed = 'Благодарим за платеж, ваша подписка продлена!'
+subscription_required = ('Чтобы получить больше рецептов, '
+                         'пожалуйста, оплатите подписку.')
+subscription_renewed = 'Спасибо, ваша подписка теперь активна!'
 
 help_message = 'Следуйте моим указаниям и всё получится.'
 db_error_message = 'При выполнении запроса произошла ошибка. Пожалуйста, повторите операцию позже.'

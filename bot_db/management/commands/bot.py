@@ -94,8 +94,7 @@ def complete_registration(update: Update, context: CallbackContext):
     try:
         customer = Customer.objects.create(user_id=update.effective_user.id, full_name=name)
         customer.add_free_subscription()
-
-        message_text = bot_strings.registration_successful
+        message_text = bot_strings.registration_successful.format(name)
     except django.db.Error:
         message_text = bot_strings.db_error_message
 
@@ -118,7 +117,7 @@ def main_menu(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton(bot_strings.account_menu_button, callback_data='account'),
         ],
-
+        # TODO subscription branch
         # [
         #     InlineKeyboardButton(bot_strings.subscribe, callback_data='subscribe'),
         # ],
@@ -137,7 +136,7 @@ def request_diet(update: Update, context: CallbackContext):
     query.answer()
 
     customer = Customer.objects.get(user_id=update.effective_user.id)
-    if not customer.subscription.is_active and customer.subscription.sent_free > 2:
+    if not customer.is_allowed_recipes():
         keyboard = [
             [
                 InlineKeyboardButton(bot_strings.subscribe_button, callback_data=f'subscribe'),
@@ -150,15 +149,26 @@ def request_diet(update: Update, context: CallbackContext):
         message_text = bot_strings.subscription_required
 
     else:
-        message_text = bot_strings.request_diet
-        keyboard = []
-        diets = Diet.objects.all()
-        for diet in diets:
-            keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{diet.id}')])
-        keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
-        keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
+        diets = Diet.objects.exclude(recipe__excluded_by__user_id=update.effective_user.id)
+        if diets:
+            message_text = bot_strings.request_diet
+            keyboard = []
+            for diet in diets:
+                keyboard.append([InlineKeyboardButton(diet.title, callback_data=f'diet_{diet.id}')])
+            keyboard.append([InlineKeyboardButton(bot_strings.any_diet_button, callback_data='diet_any')])
+            keyboard.append([InlineKeyboardButton(bot_strings.back_button, callback_data='back_to_main')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+        else:
+            message_text = bot_strings.no_recipes
+            keyboard = [
+                [
+                    InlineKeyboardButton(bot_strings.main_menu_button, callback_data=f'main_menu'),
+                ],
+                [
+                    InlineKeyboardButton(bot_strings.account_menu_button, callback_data='account'),
+                ],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
     update.effective_chat.send_message(message_text, reply_markup=reply_markup)
     query.message.delete()
 
@@ -172,7 +182,7 @@ def show_new_recipe(update: Update, context: CallbackContext):
 
     customer = Customer.objects.get(user_id=update.effective_user.id)
 
-    if not customer.subscription.is_active and customer.subscription.sent_free > 2:
+    if not customer.is_allowed_recipes():
         keyboard = [
             [
                 InlineKeyboardButton(bot_strings.subscribe_button, callback_data=f'subscribe'),
@@ -192,6 +202,7 @@ def show_new_recipe(update: Update, context: CallbackContext):
             .exclude(excluded_by__user_id=update.effective_user.id)
     else:
         recipes = Recipe.objects.exclude(excluded_by__user_id=update.effective_user.id)
+
     recipe = random.choice(recipes)
     message_text = format_recipe_message(recipe)
     keyboard = [
@@ -203,25 +214,20 @@ def show_new_recipe(update: Update, context: CallbackContext):
             InlineKeyboardButton(bot_strings.exclude_recipe_button,
                                  callback_data=f'exclude_recipe_{recipe.id}'),
         ],
-        ]
-    if customer.subscription.is_active or customer.subscription.sent_free < 3:
-        keyboard.extend([
-            [
-                InlineKeyboardButton(bot_strings.another_recipe_same_diet, callback_data=query.data),
-            ],
-            [
-                InlineKeyboardButton(bot_strings.another_recipe_diff_diet, callback_data='new_recipe'),
-            ],
-            [
-                InlineKeyboardButton(bot_strings.main_menu_button, callback_data='back_to_main'),
-            ],
-        ])
-    else:
-        keyboard.append([InlineKeyboardButton(bot_strings.main_menu_button, callback_data='back_to_main')])
+        [
+            InlineKeyboardButton(bot_strings.another_recipe_same_diet, callback_data=query.data),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.another_recipe_diff_diet, callback_data='new_recipe'),
+        ],
+        [
+            InlineKeyboardButton(bot_strings.main_menu_button, callback_data='back_to_main'),
+        ],
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     recipe_image = recipe.image or 'https://semantic-ui.com/images/wireframe/image.png'
     update.effective_chat.send_photo(recipe_image, caption=message_text, reply_markup=reply_markup)
-    customer.add_sent_recipe()
+    customer.count_sent_recipe()
     query.message.delete()
 
     
@@ -473,7 +479,6 @@ def remove_recipe_from_excluded(update: Update, context: CallbackContext):
     query.message.delete()
 
 
-# TODO move into its own branch
 def test_payment(update: Update, context: CallbackContext):
     price = LabeledPrice(label='Подписка на 1 месяц', amount=500_00)
     message_text = 'Тестовый платеж!'
@@ -497,8 +502,8 @@ def precheckout_callback(update: Update, context: CallbackContext):
 
 def add_paid_subscription(update: Update, context: CallbackContext):
     customer = Customer.objects.get(user_id=update.effective_user.id)
-    customer.add_paid_subscription()
-    update.effective_chat.send_message(bot_strings.subscription_added)
+    customer.renew_subscription()
+    update.effective_chat.send_message(bot_strings.subscription_renewed)
     return main_menu(update, context)
 
 
