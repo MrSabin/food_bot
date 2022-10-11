@@ -23,10 +23,6 @@ from telegram.ext import (
 
 import bot_strings
 
-env = Env()
-env.read_env()
-payments_token = env('PAYMENTS_TOKEN')
-
 # Conversation states
 (
     AWAIT_REGISTRATION,
@@ -70,7 +66,6 @@ def request_name(update: Update, context: CallbackContext) -> int:
         query.edit_message_text(bot_strings.request_name)
     else:
         update.effective_chat.send_message(bot_strings.request_name)
-
     return AWAIT_NAME
 
 
@@ -107,8 +102,7 @@ def complete_registration(update: Update, context: CallbackContext):
 
 
 def main_menu(update: Update, context: CallbackContext):
-    """Show buttons for branches: get a recipe, manage account, get a paid subscription."""
-
+    """Show buttons for branches: get a recipe, manage account."""
     query = update.callback_query
     if query:
         query.answer()
@@ -497,7 +491,7 @@ def test_payment(update: Update, context: CallbackContext):
     update.effective_chat.send_invoice(
         title='Подписка на бота',
         description='активация подписки на бота на 1 месяц',
-        provider_token=payments_token,
+        provider_token=context.bot_data['payments_token'],
         currency='rub',
         is_flexible=False,
         prices=[price],
@@ -505,14 +499,17 @@ def test_payment(update: Update, context: CallbackContext):
         payload='test-invoice-payload'
     )
 
-    customer = Customer.objects.get(user_id=update.effective_user.id)
-    customer.add_paid_subscription()
-
 
 def precheckout_callback(update: Update, context: CallbackContext):
     query = update.pre_checkout_query
     query.answer(ok=True)
 
+
+def add_paid_subscription(update: Update, context: CallbackContext):
+    customer = Customer.objects.get(user_id=update.effective_user.id)
+    customer.add_paid_subscription()
+    update.effective_chat.send_message(bot_strings.subscription_added)
+    return main_menu(update, context)
 
 
 def allergies(update: Update, context: CallbackContext):
@@ -560,8 +557,10 @@ class Command(BaseCommand):
         env = Env()
         env.read_env()
         tg_token = env('TG_TOKEN')
+        payments_token = env('PAYMENTS_TOKEN')
         updater = Updater(tg_token)
         dispatcher = updater.dispatcher
+        dispatcher.bot_data.update({'payments_token': payments_token})
 
         conversation_handler = ConversationHandler(
             entry_points=[
@@ -602,6 +601,8 @@ class Command(BaseCommand):
 
         dispatcher.add_handler(PreCheckoutQueryHandler(precheckout_callback))
         dispatcher.add_handler(CallbackQueryHandler(test_payment, pattern=r'^subscribe$'))
+        dispatcher.add_handler(MessageHandler(Filters.successful_payment, add_paid_subscription))
+
         dispatcher.add_handler(conversation_handler)
 
         updater.start_polling()

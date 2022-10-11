@@ -18,8 +18,6 @@ exclude_recipe_button = 'Больше не показывать'
 another_recipe_button = 'Другой рецепт'
 another_recipe_same_diet = 'Другой рецепт из этой же диеты'
 another_recipe_diff_diet = 'Рецепт из другой диеты'
-subscription_required = ('Ваш пробный период закончился. '
-                         'Пожалуйста, оформите подписку.')
 favorite_recipes_button = 'Избранные рецепты'
 excluded_recipes_button = 'Скрытые рецепты'
 remove_from_favorites_button = 'Удалить из избранного'
@@ -57,6 +55,10 @@ excluded_recipes_none = ('Здесь будут ваши скрытые реце
                          'чтобы сохранить его в эту секцию.')
 removed_from_favorites = 'Рецепт удалён из избранного.'
 removed_from_excluded = 'Этот рецепт снова будет показываться.'
+subscription_required = ('Ваш пробный период закончился. '
+                         'Пожалуйста, оформите подписку.')
+subscription_added = 'Благодарим за платеж, подписка оформлена!'
+subscription_renewed = 'Благодарим за платеж, ваша подписка продлена!'
 
 help_message = 'Следуйте моим указаниям и всё получится.'
 db_error_message = 'При выполнении запроса произошла ошибка. Пожалуйста, повторите операцию позже.'
